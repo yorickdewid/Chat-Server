@@ -2,7 +2,7 @@
  * Copyright 2014
  *
  * Author: 		Dinux
- * Description:	Simple chatroom in C
+ * Description:		Simple chatroom in C
  * Version:		1.0
  *
  */
@@ -18,7 +18,7 @@
 #include <pthread.h>
 #include <sys/types.h>
 
-#define MAX_CLIENTS		100
+#define MAX_CLIENTS	100
 
 static unsigned int cli_count = 0;
 static int uid = 10;
@@ -26,9 +26,9 @@ static int uid = 10;
 /* Client structure */
 typedef struct {
 	struct sockaddr_in addr;	/* Client remote address */
-	int connfd;					/* Connection file descriptor */
-	int uid;					/* Client unique identifier */
-	char name[32];				/* Client name */
+	int connfd;			/* Connection file descriptor */
+	int uid;			/* Client unique identifier */
+	char name[32];			/* Client name */
 } client_t;
 
 client_t *clients[MAX_CLIENTS];
@@ -145,15 +145,15 @@ void *hanle_client(void *arg){
 
 	/* Receive input from client */
 	while((rlen = read(cli->connfd, buff_in, sizeof(buff_in)-1)) > 0){
-        buff_in[rlen] = '\0';
-        buff_out[0] = '\0';
+	        buff_in[rlen] = '\0';
+	        buff_out[0] = '\0';
 		strip_newline(buff_in);
 
 		/* Ignore empty buffer */
 		if(!strlen(buff_in)){
 			continue;
 		}
-
+	
 		/* Special options */
 		if(buff_in[0] == '\\'){
 			char *command, *param;
@@ -236,32 +236,32 @@ int main(int argc, char *argv[]){
 	int listenfd = 0, connfd = 0;
 	struct sockaddr_in serv_addr;
 	struct sockaddr_in cli_addr;
-    pthread_t tid;
+	pthread_t tid;
 
 	/* Socket settings */
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(5000); 
+	listenfd = socket(AF_INET, SOCK_STREAM, 0);
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	serv_addr.sin_port = htons(5000); 
 
 	/* Bind */
-    if(bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0){
-    	perror("Socket binding failed");
-    	return 1;
-    }
+	if(bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0){
+		perror("Socket binding failed");
+		return 1;
+	}
 
 	/* Listen */
 	if(listen(listenfd, 10) < 0){
 		perror("Socket listening failed");
 		return 1;
-    }
+	}
 
 	printf("<[SERVER STARTED]>\n");
 
 	/* Accept clients */
-    while(1){
-    	socklen_t clilen = sizeof(cli_addr);
-        connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &clilen);
+	while(1){
+		socklen_t clilen = sizeof(cli_addr);
+		connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &clilen);
 
 		/* Check if max clients is reached */
 		if((cli_count+1) == MAX_CLIENTS){
@@ -285,6 +285,6 @@ int main(int argc, char *argv[]){
 		pthread_create(&tid, NULL, &hanle_client, (void*)cli);
 
 		/* Reduce CPU usage */
-        sleep(1);
-     }
+		sleep(1);
+	}
 }
