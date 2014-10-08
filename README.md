@@ -18,3 +18,5 @@ Simple chatroom in C. This project demonstrates the basic use of sockets. There 
 | \PRIVATE      | [reference] [message] | Send private message                |
 | \ACTIVE       |                       | Show active clients                 |
 | \HELP         |                       | Show this help                      |
+
+For the SSL version of the chat server check out the [Chat Server Secure](https://github.com/yorickdewid/Chat-Server-Secure "Chat Server Secure") repository.
