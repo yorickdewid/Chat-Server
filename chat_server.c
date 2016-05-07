@@ -128,7 +128,7 @@ void print_client_addr(struct sockaddr_in addr){
 }
 
 /* Handle all communication with the client */
-void *hanle_client(void *arg){
+void *handle_client(void *arg){
 	char buff_out[1024];
 	char buff_in[1024];
 	int rlen;
@@ -282,7 +282,7 @@ int main(int argc, char *argv[]){
 
 		/* Add client to the queue and fork thread */
 		queue_add(cli);
-		pthread_create(&tid, NULL, &hanle_client, (void*)cli);
+		pthread_create(&tid, NULL, &handle_client, (void*)cli);
 
 		/* Reduce CPU usage */
 		sleep(1);
