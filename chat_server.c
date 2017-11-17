@@ -244,6 +244,9 @@ int main(int argc, char *argv[]){
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	serv_addr.sin_port = htons(5000); 
 
+	/* Ignore pipe signals */
+	signal(SIGPIPE, SIG_IGN);
+	
 	/* Bind */
 	if(bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0){
 		perror("Socket binding failed");
