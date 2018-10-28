@@ -64,7 +64,10 @@ void send_message(char *s, int uid){
 	for(i=0;i<MAX_CLIENTS;i++){
 		if(clients[i]){
 			if(clients[i]->uid != uid){
-				write(clients[i]->connfd, s, strlen(s));
+				if(write(clients[i]->connfd, s, strlen(s))<0){
+					perror("write");
+					exit(-1);
+				}
 			}
 		}
 	}
@@ -75,14 +78,20 @@ void send_message_all(char *s){
 	int i;
 	for(i=0;i<MAX_CLIENTS;i++){
 		if(clients[i]){
-			write(clients[i]->connfd, s, strlen(s));
+			if(write(clients[i]->connfd, s, strlen(s))<0){
+				perror("write");
+				exit(-1);
+			}
 		}
 	}
 }
 
 /* Send message to sender */
 void send_message_self(const char *s, int connfd){
-	write(connfd, s, strlen(s));
+	if(write(connfd, s, strlen(s))<0){
+		perror("write");
+		exit(-1);
+	}
 }
 
 /* Send message to client */
@@ -91,7 +100,10 @@ void send_message_client(char *s, int uid){
 	for(i=0;i<MAX_CLIENTS;i++){
 		if(clients[i]){
 			if(clients[i]->uid == uid){
-				write(clients[i]->connfd, s, strlen(s));
+				if(write(clients[i]->connfd, s, strlen(s))<0){
+					perror("write");
+					exit(-1);
+				}
 			}
 		}
 	}

@@ -1,5 +1,9 @@
 language: c
 sudo: false
 
+compiler:
+  - clang
+  - gcc
+
 script:
   - make
