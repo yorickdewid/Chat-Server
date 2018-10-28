@@ -1,7 +1,7 @@
 /*
- * Copyright 2014
+ * Copyright 2014-2018
  *
- * Author: 		Dinux
+ * Author: 		Yorick de Wid
  * Description:		Simple chatroom in C
  * Version:		1.0
  *
@@ -130,7 +130,7 @@ void print_client_addr(struct sockaddr_in addr){
 
 /* Handle all communication with the client */
 void *handle_client(void *arg){
-	char buff_out[1024];
+	char buff_out[2048];
 	char buff_in[1024];
 	int rlen;
 
@@ -154,7 +154,7 @@ void *handle_client(void *arg){
 		if(!strlen(buff_in)){
 			continue;
 		}
-	
+
 		/* Special options */
 		if(buff_in[0] == '\\'){
 			char *command, *param;
@@ -211,7 +211,7 @@ void *handle_client(void *arg){
 			}
 		}else{
 			/* Send message */
-			sprintf(buff_out, "[%s] %s\r\n", cli->name, buff_in);
+			snprintf(buff_out, sizeof(buff_out), "[%s] %s\r\n", cli->name, buff_in);
 			send_message(buff_out, cli->uid);
 		}
 	}
@@ -229,7 +229,7 @@ void *handle_client(void *arg){
 	free(cli);
 	cli_count--;
 	pthread_detach(pthread_self());
-	
+
 	return NULL;
 }
 
@@ -243,11 +243,11 @@ int main(int argc, char *argv[]){
 	listenfd = socket(AF_INET, SOCK_STREAM, 0);
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serv_addr.sin_port = htons(5000); 
+	serv_addr.sin_port = htons(5000);
 
 	/* Ignore pipe signals */
 	signal(SIGPIPE, SIG_IGN);
-	
+
 	/* Bind */
 	if(bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0){
 		perror("Socket binding failed");
