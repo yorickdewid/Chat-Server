@@ -17,6 +17,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/types.h>
+#include <signal.h>
 
 #define MAX_CLIENTS	100
 
