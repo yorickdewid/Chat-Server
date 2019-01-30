@@ -229,11 +229,11 @@ void *handle_client(void *arg){
 	}
 
 	/* Close connection */
-	close(cli->connfd);
 	sprintf(buff_out, "<<LEAVE, BYE %s\r\n", cli->name);
 	send_message_all(buff_out);
+	close(cli->connfd);
 
-	/* Delete client from queue and yeild thread */
+	/* Delete client from queue and yield thread */
 	queue_delete(cli->uid);
 	printf("<<LEAVE ");
 	print_client_addr(cli->addr);
