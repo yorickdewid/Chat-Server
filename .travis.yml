@@ -7,3 +7,4 @@ compiler:
 
 script:
   - make
+  - make debug
