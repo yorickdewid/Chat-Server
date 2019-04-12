@@ -65,7 +65,7 @@ void send_message(char *s, int uid){
 		if(clients[i]){
 			if(clients[i]->uid != uid){
 				if(write(clients[i]->connfd, s, strlen(s))<0){
-					perror("write");
+					perror("Write to descriptor failed");
 					exit(-1);
 				}
 			}
@@ -79,7 +79,7 @@ void send_message_all(char *s){
 	for(i=0;i<MAX_CLIENTS;i++){
 		if(clients[i]){
 			if(write(clients[i]->connfd, s, strlen(s))<0){
-				perror("write");
+				perror("Write to descriptor failed");
 				exit(-1);
 			}
 		}
@@ -89,7 +89,7 @@ void send_message_all(char *s){
 /* Send message to sender */
 void send_message_self(const char *s, int connfd){
 	if(write(connfd, s, strlen(s))<0){
-		perror("write");
+		perror("Write to descriptor failed");
 		exit(-1);
 	}
 }
@@ -101,7 +101,7 @@ void send_message_client(char *s, int uid){
 		if(clients[i]){
 			if(clients[i]->uid == uid){
 				if(write(clients[i]->connfd, s, strlen(s))<0){
-					perror("write");
+					perror("Write to descriptor failed");
 					exit(-1);
 				}
 			}
