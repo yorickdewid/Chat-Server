@@ -115,7 +115,7 @@ void send_active_clients(int connfd){
 	char s[64];
 	for(i=0;i<MAX_CLIENTS;i++){
 		if(clients[i]){
-			sprintf(s, "<<CLIENT %d | %s\r\n", clients[i]->uid, clients[i]->name);
+			sprintf(s, "<< client %d | %s\r\n", clients[i]->uid, clients[i]->name);
 			send_message_self(s, connfd);
 		}
 	}
@@ -149,11 +149,11 @@ void *handle_client(void *arg){
 	cli_count++;
 	client_t *cli = (client_t *)arg;
 
-	printf("<<ACCEPT ");
+	printf("<< accept ");
 	print_client_addr(cli->addr);
-	printf(" REFERENCED BY %d\n", cli->uid);
+	printf(" referenced by %d\n", cli->uid);
 
-	sprintf(buff_out, "<<JOIN, HELLO %s\r\n", cli->name);
+	sprintf(buff_out, "<< join, hello %s\r\n", cli->name);
 	send_message_all(buff_out);
 
 	/* Receive input from client */
@@ -171,22 +171,22 @@ void *handle_client(void *arg){
 		if(buff_in[0] == '\\'){
 			char *command, *param;
 			command = strtok(buff_in," ");
-			if(!strcmp(command, "\\QUIT")){
+			if(!strcmp(command, "\\quit")){
 				break;
-			}else if(!strcmp(command, "\\PING")){
-				send_message_self("<<PONG\r\n", cli->connfd);
-			}else if(!strcmp(command, "\\NAME")){
+			}else if(!strcmp(command, "\\ping")){
+				send_message_self("<< pong\r\n", cli->connfd);
+			}else if(!strcmp(command, "\\name")){
 				param = strtok(NULL, " ");
 				if(param){
 					char *old_name = strdup(cli->name);
 					strcpy(cli->name, param);
-					sprintf(buff_out, "<<RENAME, %s TO %s\r\n", old_name, cli->name);
+					sprintf(buff_out, "<< rename, %s to %s\r\n", old_name, cli->name);
 					free(old_name);
 					send_message_all(buff_out);
 				}else{
-					send_message_self("<<NAME CANNOT BE NULL\r\n", cli->connfd);
+					send_message_self("<< name cannot be null\r\n", cli->connfd);
 				}
-			}else if(!strcmp(command, "\\PRIVATE")){
+			}else if(!strcmp(command, "\\private")){
 				param = strtok(NULL, " ");
 				if(param){
 					int uid = atoi(param);
@@ -201,25 +201,25 @@ void *handle_client(void *arg){
 						strcat(buff_out, "\r\n");
 						send_message_client(buff_out, uid);
 					}else{
-						send_message_self("<<MESSAGE CANNOT BE NULL\r\n", cli->connfd);
+						send_message_self("<< message cannot be null\r\n", cli->connfd);
 					}
 				}else{
-					send_message_self("<<REFERENCE CANNOT BE NULL\r\n", cli->connfd);
+					send_message_self("<< reference cannot be null\r\n", cli->connfd);
 				}
-			}else if(!strcmp(command, "\\ACTIVE")){
-				sprintf(buff_out, "<<CLIENTS %d\r\n", cli_count);
+			}else if(!strcmp(command, "\\active")){
+				sprintf(buff_out, "<< clients %d\r\n", cli_count);
 				send_message_self(buff_out, cli->connfd);
 				send_active_clients(cli->connfd);
-			}else if(!strcmp(command, "\\HELP")){
-				strcat(buff_out, "\\QUIT     Quit chatroom\r\n");
-				strcat(buff_out, "\\PING     Server test\r\n");
-				strcat(buff_out, "\\NAME     <name> Change nickname\r\n");
-				strcat(buff_out, "\\PRIVATE  <reference> <message> Send private message\r\n");
-				strcat(buff_out, "\\ACTIVE   Show active clients\r\n");
-				strcat(buff_out, "\\HELP     Show help\r\n");
+			}else if(!strcmp(command, "\\help")){
+				strcat(buff_out, "<< \\quit     Quit chatroom\r\n");
+				strcat(buff_out, "<< \\ping     Server test\r\n");
+				strcat(buff_out, "<< \\name     <name> Change nickname\r\n");
+				strcat(buff_out, "<< \\private  <reference> <message> Send private message\r\n");
+				strcat(buff_out, "<< \\active   Show active clients\r\n");
+				strcat(buff_out, "<< \\help     Show help\r\n");
 				send_message_self(buff_out, cli->connfd);
 			}else{
-				send_message_self("<<UNKOWN COMMAND\r\n", cli->connfd);
+				send_message_self("<< unknown command\r\n", cli->connfd);
 			}
 		}else{
 			/* Send message */
@@ -229,15 +229,15 @@ void *handle_client(void *arg){
 	}
 
 	/* Close connection */
-	sprintf(buff_out, "<<LEAVE, BYE %s\r\n", cli->name);
+	sprintf(buff_out, "<< leave, bye %s\r\n", cli->name);
 	send_message_all(buff_out);
 	close(cli->connfd);
 
 	/* Delete client from queue and yield thread */
 	queue_delete(cli->uid);
-	printf("<<LEAVE ");
+	printf("<< leave ");
 	print_client_addr(cli->addr);
-	printf(" REFERENCED BY %d\n", cli->uid);
+	printf(" referenced by %d\n", cli->uid);
 	free(cli);
 	cli_count--;
 	pthread_detach(pthread_self());
@@ -272,7 +272,7 @@ int main(int argc, char *argv[]){
 		return 1;
 	}
 
-	printf("<[SERVER STARTED]>\n");
+	printf("<[ SERVER STARTED ]>\n");
 
 	/* Accept clients */
 	while(1){
@@ -281,8 +281,8 @@ int main(int argc, char *argv[]){
 
 		/* Check if max clients is reached */
 		if((cli_count+1) == MAX_CLIENTS){
-			printf("<<MAX CLIENTS REACHED\n");
-			printf("<<REJECT ");
+			printf("<< max clients reached\n");
+			printf("<< reject ");
 			print_client_addr(cli_addr);
 			printf("\n");
 			close(connfd);
