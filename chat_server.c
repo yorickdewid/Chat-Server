@@ -115,7 +115,7 @@ void send_active_clients(int connfd){
 	char s[64];
 	for(i=0;i<MAX_CLIENTS;i++){
 		if(clients[i]){
-			sprintf(s, "<< client %d | %s\r\n", clients[i]->uid, clients[i]->name);
+			sprintf(s, "<< [%d] %s\r\n", clients[i]->uid, clients[i]->name);
 			send_message_self(s, connfd);
 		}
 	}
@@ -153,8 +153,10 @@ void *handle_client(void *arg){
 	print_client_addr(cli->addr);
 	printf(" referenced by %d\n", cli->uid);
 
-	sprintf(buff_out, "<< join, hello %s\r\n", cli->name);
+	sprintf(buff_out, "<< %s has joined\r\n", cli->name);
 	send_message_all(buff_out);
+
+	send_message_self("<< see /help for assistance\r\n", cli->connfd);
 
 	/* Receive input from client */
 	while((rlen = read(cli->connfd, buff_in, sizeof(buff_in)-1)) > 0){
@@ -168,25 +170,25 @@ void *handle_client(void *arg){
 		}
 
 		/* Special options */
-		if(buff_in[0] == '\\'){
+		if(buff_in[0] == '/'){
 			char *command, *param;
 			command = strtok(buff_in," ");
-			if(!strcmp(command, "\\quit")){
+			if(!strcmp(command, "/quit")){
 				break;
-			}else if(!strcmp(command, "\\ping")){
+			}else if(!strcmp(command, "/ping")){
 				send_message_self("<< pong\r\n", cli->connfd);
-			}else if(!strcmp(command, "\\name")){
+			}else if(!strcmp(command, "/nick")){
 				param = strtok(NULL, " ");
 				if(param){
 					char *old_name = strdup(cli->name);
 					strcpy(cli->name, param);
-					sprintf(buff_out, "<< rename, %s to %s\r\n", old_name, cli->name);
+					sprintf(buff_out, "<< %s is now known as %s\r\n", old_name, cli->name);
 					free(old_name);
 					send_message_all(buff_out);
 				}else{
 					send_message_self("<< name cannot be null\r\n", cli->connfd);
 				}
-			}else if(!strcmp(command, "\\private")){
+			}else if(!strcmp(command, "/msg")){
 				param = strtok(NULL, " ");
 				if(param){
 					int uid = atoi(param);
@@ -206,17 +208,17 @@ void *handle_client(void *arg){
 				}else{
 					send_message_self("<< reference cannot be null\r\n", cli->connfd);
 				}
-			}else if(!strcmp(command, "\\active")){
+			}else if(!strcmp(command, "/list")){
 				sprintf(buff_out, "<< clients %d\r\n", cli_count);
 				send_message_self(buff_out, cli->connfd);
 				send_active_clients(cli->connfd);
-			}else if(!strcmp(command, "\\help")){
-				strcat(buff_out, "<< \\quit     Quit chatroom\r\n");
-				strcat(buff_out, "<< \\ping     Server test\r\n");
-				strcat(buff_out, "<< \\name     <name> Change nickname\r\n");
-				strcat(buff_out, "<< \\private  <reference> <message> Send private message\r\n");
-				strcat(buff_out, "<< \\active   Show active clients\r\n");
-				strcat(buff_out, "<< \\help     Show help\r\n");
+			}else if(!strcmp(command, "/help")){
+				strcat(buff_out, "<< /quit     Quit chatroom\r\n");
+				strcat(buff_out, "<< /ping     Server test\r\n");
+				strcat(buff_out, "<< /nick     <name> Change nickname\r\n");
+				strcat(buff_out, "<< /msg      <reference> <message> Send private message\r\n");
+				strcat(buff_out, "<< /list     Show active clients\r\n");
+				strcat(buff_out, "<< /help     Show help\r\n");
 				send_message_self(buff_out, cli->connfd);
 			}else{
 				send_message_self("<< unknown command\r\n", cli->connfd);
@@ -229,13 +231,13 @@ void *handle_client(void *arg){
 	}
 
 	/* Close connection */
-	sprintf(buff_out, "<< leave, bye %s\r\n", cli->name);
+	sprintf(buff_out, "<< %s has left\r\n", cli->name);
 	send_message_all(buff_out);
 	close(cli->connfd);
 
 	/* Delete client from queue and yield thread */
 	queue_delete(cli->uid);
-	printf("<< leave ");
+	printf("<< quit ");
 	print_client_addr(cli->addr);
 	printf(" referenced by %d\n", cli->uid);
 	free(cli);
