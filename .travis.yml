@@ -1,9 +1,22 @@
 language: c
 sudo: false
 
-compiler:
-  - clang
-  - gcc-8
+matrix:
+  include:
+    - os: linux
+      addons:
+        apt:
+          packages:
+            - clang-7
+          sources:
+            - llvm-toolchain-trusty-7
+
+    - os: linux
+      addons:
+        apt:
+          packages: g++-7
+          sources:
+            - ubuntu-toolchain-r-test
 
 script:
   - make

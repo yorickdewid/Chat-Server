@@ -244,7 +244,7 @@ void *handle_client(void *arg){
                 param = strtok(NULL, " ");
                 if (param) {
                     int uid = atoi(param);
-                    param = strtok(NULL, " "); // TODO: non-reentrant function
+                    param = strtok(NULL, " ");
                     if (param) {
                         sprintf(buff_out, "[PM][%s]", cli->name);
                         while (param != NULL) {
