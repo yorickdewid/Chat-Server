@@ -32,6 +32,7 @@ Or build an executable with debug symbols
 | ------------- | --------------------- | ----------------------------------- |
 | /quit         |                       | Leave the chatroom                  |
 | /ping         |                       | Test connection, responds with PONG |
+| /topic        | [message]             | Set the chatroom topic              |
 | /nick         | [nickname]            | Change nickname                     |
 | /msg          | [reference] [message] | Send private message                |
 | /list         |                       | Show active clients                 |

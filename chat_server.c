@@ -20,6 +20,7 @@
 #include <signal.h>
 
 #define MAX_CLIENTS 100
+#define BUFFER_SZ 2048
 
 static _Atomic unsigned int cli_count = 0;
 static int uid = 10;
@@ -35,6 +36,10 @@ typedef struct {
 client_t *clients[MAX_CLIENTS];
 
 pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static char topic[BUFFER_SZ/2];
+
+pthread_mutex_t topic_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* The 'strdup' function is not available in the C standard  */
 char *_strdup(const char *s) {
@@ -159,8 +164,6 @@ void print_client_addr(struct sockaddr_in addr){
         (addr.sin_addr.s_addr & 0xff000000) >> 24);
 }
 
-#define BUFFER_SZ 2048
-
 /* Handle all communication with the client */
 void *handle_client(void *arg){
     char buff_out[BUFFER_SZ];
@@ -177,6 +180,14 @@ void *handle_client(void *arg){
     sprintf(buff_out, "<< %s has joined\r\n", cli->name);
     send_message_all(buff_out);
 
+    pthread_mutex_lock(&topic_mutex);
+    if (strlen(topic)) {
+        buff_out[0] = '\0';
+        sprintf(buff_out, "<< topic: %s\r\n", topic);
+        send_message_self(buff_out, cli->connfd);
+    }
+    pthread_mutex_unlock(&topic_mutex);
+    
     send_message_self("<< see /help for assistance\r\n", cli->connfd);
 
     /* Receive input from client */
@@ -198,10 +209,30 @@ void *handle_client(void *arg){
                 break;
             } else if (!strcmp(command, "/ping")) {
                 send_message_self("<< pong\r\n", cli->connfd);
+            } else if (!strcmp(command, "/topic")) {
+                param = strtok(NULL, " ");
+                if (param) {
+                    pthread_mutex_lock(&topic_mutex);
+                    topic[0] = '\0';
+                    while (param != NULL) {
+                        strcat(topic, param);
+                        strcat(topic, " ");
+                        param = strtok(NULL, " ");
+                    }
+                    pthread_mutex_unlock(&topic_mutex);
+                    sprintf(buff_out, "<< topic changed to: %s \r\n", topic);
+                    send_message_all(buff_out);
+                } else {
+                    send_message_self("<< message cannot be null\r\n", cli->connfd);
+                }
             } else if (!strcmp(command, "/nick")) {
                 param = strtok(NULL, " ");
                 if (param) {
-                    char *old_name = _strdup(cli->name); // TODO: can fail
+                    char *old_name = _strdup(cli->name);
+                    if (!old_name) {
+                        perror("Cannot allocate memory");
+                        continue;
+                    }
                     strcpy(cli->name, param);
                     sprintf(buff_out, "<< %s is now known as %s\r\n", old_name, cli->name);
                     free(old_name);
@@ -236,6 +267,7 @@ void *handle_client(void *arg){
             } else if (!strcmp(command, "/help")) {
                 strcat(buff_out, "<< /quit     Quit chatroom\r\n");
                 strcat(buff_out, "<< /ping     Server test\r\n");
+                strcat(buff_out, "<< /topic    <message> Set chat topic\r\n");
                 strcat(buff_out, "<< /nick     <name> Change nickname\r\n");
                 strcat(buff_out, "<< /msg      <reference> <message> Send private message\r\n");
                 strcat(buff_out, "<< /list     Show active clients\r\n");

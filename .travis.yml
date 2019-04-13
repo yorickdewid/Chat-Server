@@ -3,7 +3,7 @@ sudo: false
 
 compiler:
   - clang
-  - gcc
+  - gcc-8
 
 script:
   - make
