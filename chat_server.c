@@ -3,6 +3,7 @@
  *
  * Author:      Yorick de Wid
  * Description: Simple chatroom in C
+ * License:     GPLv3
  * Version:     1.4
  */
 
@@ -20,7 +21,7 @@
 
 #define MAX_CLIENTS 100
 
-static unsigned int cli_count = 0;
+static _Atomic unsigned int cli_count = 0;
 static int uid = 10;
 
 /* Client structure */
@@ -33,56 +34,72 @@ typedef struct {
 
 client_t *clients[MAX_CLIENTS];
 
+pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+/* The 'strdup' function is not available in the C standard  */
+char *_strdup(const char *s) {
+    size_t size = strlen(s) + 1;
+    char *p = malloc(size);
+    if (p) {
+        memcpy(p, s, size);
+    }
+    return p;
+}
+
 /* Add client to queue */
 void queue_add(client_t *cl){
-    int i;
-    for (i = 0; i < MAX_CLIENTS; ++i) {
+    pthread_mutex_lock(&clients_mutex);
+    for (int i = 0; i < MAX_CLIENTS; ++i) {
         if (!clients[i]) {
             clients[i] = cl;
-            return;
+            break;
         }
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 
 /* Delete client from queue */
 void queue_delete(int uid){
-    int i;
-    for (i = 0; i < MAX_CLIENTS; ++i) {
+    pthread_mutex_lock(&clients_mutex);
+    for (int i = 0; i < MAX_CLIENTS; ++i) {
         if (clients[i]) {
             if (clients[i]->uid == uid) {
                 clients[i] = NULL;
-                return;
+                break;
             }
         }
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 
 /* Send message to all clients but the sender */
 void send_message(char *s, int uid){
-    int i;
-    for (i = 0; i < MAX_CLIENTS; ++i) {
+    pthread_mutex_lock(&clients_mutex);
+    for (int i = 0; i < MAX_CLIENTS; ++i) {
         if (clients[i]) {
             if (clients[i]->uid != uid) {
                 if (write(clients[i]->connfd, s, strlen(s)) < 0) {
                     perror("Write to descriptor failed");
-                    exit(-1);
+                    break;
                 }
             }
         }
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 
 /* Send message to all clients */
 void send_message_all(char *s){
-    int i;
-    for (i = 0; i <MAX_CLIENTS; ++i){
+    pthread_mutex_lock(&clients_mutex);
+    for (int i = 0; i <MAX_CLIENTS; ++i){
         if (clients[i]) {
             if (write(clients[i]->connfd, s, strlen(s)) < 0) {
                 perror("Write to descriptor failed");
-                exit(-1);
+                break;
             }
         }
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 
 /* Send message to sender */
@@ -95,29 +112,32 @@ void send_message_self(const char *s, int connfd){
 
 /* Send message to client */
 void send_message_client(char *s, int uid){
-    int i;
-    for (i = 0; i < MAX_CLIENTS; ++i){
+    pthread_mutex_lock(&clients_mutex);
+    for (int i = 0; i < MAX_CLIENTS; ++i){
         if (clients[i]) { 
             if (clients[i]->uid == uid) {
                 if (write(clients[i]->connfd, s, strlen(s))<0) {
                     perror("Write to descriptor failed");
-                    exit(-1);
+                    break;
                 }
             }
         }
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 
 /* Send list of active clients */
 void send_active_clients(int connfd){
-    int i;
     char s[64];
-    for (i = 0; i < MAX_CLIENTS; ++i){
+
+    pthread_mutex_lock(&clients_mutex);
+    for (int i = 0; i < MAX_CLIENTS; ++i){
         if (clients[i]) {
             sprintf(s, "<< [%d] %s\r\n", clients[i]->uid, clients[i]->name);
             send_message_self(s, connfd);
         }
     }
+    pthread_mutex_unlock(&clients_mutex);
 }
 
 /* Strip CRLF */
@@ -133,16 +153,18 @@ void strip_newline(char *s){
 /* Print ip address */
 void print_client_addr(struct sockaddr_in addr){
     printf("%d.%d.%d.%d",
-        addr.sin_addr.s_addr & 0xFF,
-        (addr.sin_addr.s_addr & 0xFF00)>>8,
-        (addr.sin_addr.s_addr & 0xFF0000)>>16,
-        (addr.sin_addr.s_addr & 0xFF000000)>>24);
+        addr.sin_addr.s_addr & 0xff,
+        (addr.sin_addr.s_addr & 0xff00) >> 8,
+        (addr.sin_addr.s_addr & 0xff0000) >> 16,
+        (addr.sin_addr.s_addr & 0xff000000) >> 24);
 }
+
+#define BUFFER_SZ 2048
 
 /* Handle all communication with the client */
 void *handle_client(void *arg){
-    char buff_out[2048];
-    char buff_in[1024];
+    char buff_out[BUFFER_SZ];
+    char buff_in[BUFFER_SZ / 2];
     int rlen;
 
     cli_count++;
@@ -158,7 +180,7 @@ void *handle_client(void *arg){
     send_message_self("<< see /help for assistance\r\n", cli->connfd);
 
     /* Receive input from client */
-    while ((rlen = read(cli->connfd, buff_in, sizeof(buff_in)-1)) > 0) {
+    while ((rlen = read(cli->connfd, buff_in, sizeof(buff_in) - 1)) > 0) {
         buff_in[rlen] = '\0';
         buff_out[0] = '\0';
         strip_newline(buff_in);
@@ -179,7 +201,7 @@ void *handle_client(void *arg){
             } else if (!strcmp(command, "/nick")) {
                 param = strtok(NULL, " ");
                 if (param) {
-                    char *old_name = strdup(cli->name);
+                    char *old_name = _strdup(cli->name); // TODO: can fail
                     strcpy(cli->name, param);
                     sprintf(buff_out, "<< %s is now known as %s\r\n", old_name, cli->name);
                     free(old_name);
@@ -191,7 +213,7 @@ void *handle_client(void *arg){
                 param = strtok(NULL, " ");
                 if (param) {
                     int uid = atoi(param);
-                    param = strtok(NULL, " ");
+                    param = strtok(NULL, " "); // TODO: non-reentrant function
                     if (param) {
                         sprintf(buff_out, "[PM][%s]", cli->name);
                         while (param != NULL) {
@@ -264,13 +286,13 @@ int main(int argc, char *argv[]){
     /* Bind */
     if (bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("Socket binding failed");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     /* Listen */
     if (listen(listenfd, 10) < 0) {
         perror("Socket listening failed");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     printf("<[ SERVER STARTED ]>\n");
@@ -304,4 +326,6 @@ int main(int argc, char *argv[]){
         /* Reduce CPU usage */
         sleep(1);
     }
+
+    return EXIT_SUCCESS;
 }
