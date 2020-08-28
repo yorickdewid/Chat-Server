@@ -1,10 +1,10 @@
 /*
- * Copyright 2014 - 2019
+ * Copyright 2014 - 2020
  *
  * Author:      Yorick de Wid
  * Description: Simple chatroom in C
  * License:     GPLv3
- * Version:     1.4
+ * Version:     1.5
  */
 
 #include <sys/socket.h>
@@ -119,7 +119,7 @@ void send_message_self(const char *s, int connfd){
 void send_message_client(char *s, int uid){
     pthread_mutex_lock(&clients_mutex);
     for (int i = 0; i < MAX_CLIENTS; ++i){
-        if (clients[i]) { 
+        if (clients[i]) {
             if (clients[i]->uid == uid) {
                 if (write(clients[i]->connfd, s, strlen(s))<0) {
                     perror("Write to descriptor failed");
@@ -187,7 +187,7 @@ void *handle_client(void *arg){
         send_message_self(buff_out, cli->connfd);
     }
     pthread_mutex_unlock(&topic_mutex);
-    
+
     send_message_self("<< see /help for assistance\r\n", cli->connfd);
 
     /* Receive input from client */
@@ -233,7 +233,8 @@ void *handle_client(void *arg){
                         perror("Cannot allocate memory");
                         continue;
                     }
-                    strcpy(cli->name, param);
+                    strncpy(cli->name, param, sizeof(cli->name));
+                    cli->name[sizeof(cli->name)-1] = '\0';
                     sprintf(buff_out, "<< %s is now known as %s\r\n", old_name, cli->name);
                     free(old_name);
                     send_message_all(buff_out);
