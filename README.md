@@ -1,6 +1,6 @@
 Chat Server
 =
-[![Build Status](https://travis-ci.org/yorickdewid/Chat-Server.svg?branch=master)](https://travis-ci.org/yorickdewid/Chat-Server)
+![GNU Make](https://github.com/yorickdewid/Chat-Server/workflows/GNU%20Make/badge.svg)
 
 Simple chatroom in C loosely based on IRC. This project demonstrates the basic use of sockets. There is no client available but any telnet client will do. Just connect to the server on the specified port and address. By default port 5000 is used. The project was intended to run on Linux and Unix based systems. However with minor changes you'd be able to run it on Windows.
 
